@@ -22,10 +22,10 @@ use crate::util_types::mutator_set::commit;
 /// See [UtxoNotificationPayload], [ExpectedUtxo]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(any(test, feature = "arbitrary-impls"), derive(Arbitrary))]
-pub(crate) struct IncomingUtxo {
-    pub(crate) utxo: Utxo,
-    pub(crate) sender_randomness: Digest,
-    pub(crate) receiver_preimage: Digest,
+pub struct IncomingUtxo {
+    pub utxo: Utxo,
+    pub sender_randomness: Digest,
+    pub receiver_preimage: Digest,
 }
 
 impl From<&ExpectedUtxo> for IncomingUtxo {
@@ -39,7 +39,7 @@ impl From<&ExpectedUtxo> for IncomingUtxo {
 }
 
 impl IncomingUtxo {
-    pub(crate) fn addition_record(&self) -> AdditionRecord {
+    pub fn addition_record(&self) -> AdditionRecord {
         commit(
             Tip5::hash(&self.utxo),
             self.sender_randomness,
@@ -48,7 +48,7 @@ impl IncomingUtxo {
     }
 
     /// Returns true iff this UTXO is a guesser reward.
-    pub(crate) fn is_guesser_fee(&self) -> bool {
+    pub fn is_guesser_fee(&self) -> bool {
         self.utxo
             .is_lockscript_with_preimage(self.receiver_preimage)
     }

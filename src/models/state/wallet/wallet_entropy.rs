@@ -31,12 +31,12 @@ pub struct WalletEntropy {
 }
 
 impl WalletEntropy {
-    pub(crate) fn new(secret_seed: SecretKeyMaterial) -> Self {
+    pub fn new(secret_seed: SecretKeyMaterial) -> Self {
         Self { secret_seed }
     }
 
     /// Create a `WalletEntropy` object with a fixed digest
-    pub(crate) fn devnet_wallet() -> Self {
+    pub fn devnet_wallet() -> Self {
         let secret_seed = SecretKeyMaterial(xfe!([
             12063201067205522823_u64,
             1529663126377206632_u64,
@@ -48,7 +48,7 @@ impl WalletEntropy {
 
     /// Return the guesser preimage for guessing on top of a given block (as
     /// identified by the block's predecessor's hash).
-    pub(crate) fn guesser_preimage(&self, prev_block_digest: Digest) -> Digest {
+    pub fn guesser_preimage(&self, prev_block_digest: Digest) -> Digest {
         Tip5::hash_varlen(
             &[
                 self.secret_seed.0.encode(),

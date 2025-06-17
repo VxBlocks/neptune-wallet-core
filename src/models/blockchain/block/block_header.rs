@@ -76,7 +76,7 @@ pub struct BlockHeader {
     pub difficulty: Difficulty,
 
     /// The lock after-image for the guesser fee UTXOs
-    pub(crate) guesser_digest: Digest,
+    pub guesser_digest: Digest,
 }
 
 impl Display for BlockHeader {

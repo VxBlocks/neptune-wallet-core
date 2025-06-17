@@ -24,7 +24,7 @@ impl HashLockKey {
         self.preimage.hash()
     }
 
-    pub(crate) fn from_preimage(preimage: Digest) -> Self {
+    pub fn from_preimage(preimage: Digest) -> Self {
         Self { preimage }
     }
 

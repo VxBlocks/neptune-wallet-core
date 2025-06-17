@@ -32,8 +32,8 @@ use crate::util_types::mutator_set::commit;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TxOutput {
     utxo: Utxo,
-    sender_randomness: Digest,
-    receiver_digest: Digest,
+    pub sender_randomness: Digest,
+    pub receiver_digest: Digest,
     notification_method: UtxoNotifyMethod,
 
     /// Indicates if this client can unlock the UTXO
@@ -105,7 +105,7 @@ impl From<&TxOutput> for AdditionRecord {
 
 impl TxOutput {
     // note: normally use one of the other constructors.
-    pub(crate) fn new(
+    pub fn new(
         utxo: Utxo,
         sender_randomness: Digest,
         receiver_digest: Digest,
@@ -292,7 +292,7 @@ impl TxOutput {
 
     /// Instantiate a [TxOutput] for native currency intended fro on-chain UTXO
     /// notification.
-    pub(crate) fn onchain_native_currency(
+    pub fn onchain_native_currency(
         amount: NativeCurrencyAmount,
         sender_randomness: Digest,
         receiving_address: ReceivingAddress,
@@ -329,7 +329,7 @@ impl TxOutput {
 
     /// Instantiate a [TxOutput] for native currency intended for off-chain UTXO
     /// notification.
-    pub(crate) fn offchain_native_currency(
+    pub fn offchain_native_currency(
         amount: NativeCurrencyAmount,
         sender_randomness: Digest,
         receiving_address: ReceivingAddress,
@@ -395,7 +395,7 @@ impl TxOutput {
         matches!(self.notification_method, UtxoNotifyMethod::OffChain(_))
     }
 
-    pub(crate) fn utxo(&self) -> Utxo {
+    pub fn utxo(&self) -> Utxo {
         self.utxo.clone()
     }
 

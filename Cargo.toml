@@ -22,6 +22,12 @@ eula = false
 
 [features]
 
+default = [
+    "rest",
+]
+
+rest = ["dep:axum","dep:tower-http","dep:axum-extra"]
+
 # logs write-lock acquisitions that are held over 100 millis.  requires nightly.
 # to enable: cargo +nightly build --features log-slow-write-lock
 # note: nothing logged until lock is released (guard dropped)
@@ -125,6 +131,16 @@ thread-priority = "1.2.0"
 rayon = "1.10"
 humantime = "2.1.0"
 
+# Temporary workaround: exactly specify version of transitive dependency.
+# See also: https://github.com/jhpratt/deranged/issues/18
+#
+# Once the issue is resolved, this unused dependency can be removed.
+deranged = "=0.4.0"
+
+axum = { version = "0.8.1", optional = true }
+tower-http = { version = "0.6.2", features = [ "cors", "trace", "limit" ], optional = true }
+axum-extra = { version = "0.10.0", features = ["erased-json"], optional = true }
+
 [dev-dependencies]
 
 # note: arbitrary, proptest, proptest-arbitrary-interop are duplicated in [dev-dependencies]
@@ -146,10 +162,10 @@ statrs = "0.18.0"
 test-strategy = "0.3"
 tokio-test = "0.4"
 
-[dev-dependencies.cargo-husky]
-version = "1"
-default-features = false
-features = ["user-hooks"]
+# [dev-dependencies.cargo-husky]
+# version = "1"
+# default-features = false
+# features = ["user-hooks"]
 
 # `opt-level = 3` is needed because it otherwise takes too long to sign
 # transaction with STARK proofs. The other flags are there to make compilation

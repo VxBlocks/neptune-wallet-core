@@ -2,6 +2,9 @@ use std::collections::HashMap;
 use std::error::Error;
 
 use itertools::Itertools;
+use serde::Deserialize;
+use serde::Serialize;
+use tasm_lib::twenty_first::prelude::MmrMembershipProof;
 use twenty_first::prelude::Digest;
 use twenty_first::util_types::mmr;
 use twenty_first::util_types::mmr::mmr_accumulator::MmrAccumulator;
@@ -21,6 +24,18 @@ use crate::prelude::twenty_first;
 use crate::util_types::archival_mmr::ArchivalMmr;
 use crate::util_types::mutator_set::get_swbf_indices;
 use crate::util_types::mutator_set::MutatorSetError;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequestMsMembershipProofEx {
+    pub swbf_indices: Vec<u128>,
+    pub aocl_leaf_index: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MmrMembershipProofEx {
+    pub auth_path_aocl: MmrMembershipProof,
+    pub target_chunks: ChunkDictionary,
+}
 
 #[derive(Debug, Clone)]
 pub struct ArchivalMutatorSet<MmrStorage, ChunkStorage>
@@ -238,6 +253,41 @@ where
             receiver_preimage: receiver_preimage.to_owned(),
             target_chunks,
             aocl_leaf_index,
+        })
+    }
+
+    pub async fn restore_membership_proof_ex(
+        &self,
+        requset: RequestMsMembershipProofEx,
+    ) -> Result<MmrMembershipProofEx, Box<dyn Error>> {
+        if self.aocl.is_empty().await {
+            return Err(Box::new(MutatorSetError::MutatorSetIsEmpty));
+        }
+        let auth_path_aocl = self
+            .get_aocl_authentication_path(requset.aocl_leaf_index)
+            .await?;
+
+        let batch_index = self.get_batch_index_async().await;
+        let window_start = batch_index * u128::from(CHUNK_SIZE);
+
+        let chunk_indices: Vec<u64> = requset
+            .swbf_indices
+            .iter()
+            .filter(|bi| **bi < window_start)
+            .map(|bi| (*bi / u128::from(CHUNK_SIZE)) as u64)
+            .collect();
+        let mut target_chunks: ChunkDictionary = ChunkDictionary::default();
+
+        for chunk_index in chunk_indices {
+            target_chunks.insert(
+                chunk_index,
+                self.get_chunk_and_auth_path(chunk_index).await.unwrap(),
+            );
+        }
+
+        Ok(MmrMembershipProofEx {
+            auth_path_aocl,
+            target_chunks,
         })
     }
 

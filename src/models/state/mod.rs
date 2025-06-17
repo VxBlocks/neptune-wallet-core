@@ -7,7 +7,7 @@ pub mod mining_state;
 pub mod mining_status;
 pub mod networking_state;
 pub mod shared;
-pub(crate) mod transaction_details;
+pub mod transaction_details;
 pub(crate) mod transaction_kernel_id;
 pub(crate) mod tx_creation_artifacts;
 

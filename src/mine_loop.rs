@@ -834,12 +834,7 @@ pub(crate) async fn mine(
                 .as_mut()
                 .reset(tokio::time::Instant::now() + guess_restart_interval);
 
-            Some(
-                tokio::task::Builder::new()
-                    .name("guesser")
-                    .spawn(guesser_task)
-                    .expect("Failed to spawn guesser task"),
-            )
+            Some(tokio::task::spawn(guesser_task))
         } else {
             None
         };
@@ -867,12 +862,7 @@ pub(crate) async fn mine(
                 Timestamp::now(),
             );
 
-            let task = tokio::task::Builder::new()
-                .name("composer")
-                .spawn(compose_task)
-                .expect("Failed to spawn composer task.");
-
-            task
+            tokio::task::spawn(compose_task)
         } else {
             tokio::spawn(async { Ok(()) })
         };

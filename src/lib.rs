@@ -40,6 +40,9 @@ pub mod rpc_server;
 pub mod triton_vm_job_queue;
 pub mod util_types;
 
+#[cfg(feature = "rest")]
+pub mod rest_server;
+
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
 pub mod tests;
@@ -195,19 +198,17 @@ pub async fn initialize(cli_args: cli_args::Args) -> Result<MainLoopHandler> {
             main_to_peer_broadcast_tx.subscribe();
         let peer_task_to_main_tx_clone: mpsc::Sender<PeerTaskToMain> = peer_task_to_main_tx.clone();
         let own_handshake_data_clone = own_handshake_data.clone();
-        let peer_join_handle = tokio::task::Builder::new()
-            .name("call_peer_wrapper_3")
-            .spawn(async move {
-                call_peer(
-                    peer_address,
-                    peer_state_var.clone(),
-                    main_to_peer_broadcast_rx_clone,
-                    peer_task_to_main_tx_clone,
-                    own_handshake_data_clone,
-                    1, // All outgoing connections have distance 1
-                )
-                .await;
-            })?;
+        let peer_join_handle = tokio::task::spawn(async move {
+            call_peer(
+                peer_address,
+                peer_state_var.clone(),
+                main_to_peer_broadcast_rx_clone,
+                peer_task_to_main_tx_clone,
+                own_handshake_data_clone,
+                1, // All outgoing connections have distance 1
+            )
+            .await;
+        });
         task_join_handles.push(peer_join_handle);
     }
     info!("Made outgoing connections to peers");
@@ -217,15 +218,44 @@ pub async fn initialize(cli_args: cli_args::Args) -> Result<MainLoopHandler> {
     let (main_to_miner_tx, main_to_miner_rx) = mpsc::channel::<MainToMiner>(MINER_CHANNEL_CAPACITY);
     let miner_state_lock = global_state_lock.clone(); // bump arc refcount.
     if global_state_lock.cli().mine() {
-        let miner_join_handle = tokio::task::Builder::new()
-            .name("miner")
-            .spawn(async move {
-                mine_loop::mine(main_to_miner_rx, miner_to_main_tx, miner_state_lock)
-                    .await
-                    .expect("Error in mining task");
-            })?;
+        let miner_join_handle = tokio::task::spawn(async move {
+            mine_loop::mine(main_to_miner_rx, miner_to_main_tx, miner_state_lock)
+                .await
+                .expect("Error in mining task");
+        });
         task_join_handles.push(miner_join_handle);
         info!("Started mining task");
+    }
+
+    #[cfg(feature = "rest")]
+    if let Some(rest_port) = global_state_lock.cli().rest_port {
+        let rest_listener = TcpListener::bind(format!("0.0.0.0:{}", rest_port)).await?;
+
+        let rpc_state_lock = global_state_lock.clone();
+
+        let data_directory = data_directory.clone();
+        let rpc_server_to_main_tx = rpc_server_to_main_tx.clone();
+
+        // each time we start neptune-core a new RPC cookie is generated.
+        let valid_tokens: Vec<rpc_auth::Token> =
+            vec![crate::rpc_auth::Cookie::try_new(&data_directory)
+                .await?
+                .into()];
+
+        let rpc_join_handle = tokio::spawn(async move {
+            let server = rpc_server::NeptuneRPCServer::new(
+                rpc_state_lock.clone(),
+                rpc_server_to_main_tx.clone(),
+                data_directory.clone(),
+                valid_tokens.clone(),
+            );
+
+            rest_server::run_rpc_server(rest_listener, server)
+                .await
+                .expect("Error in REST server task");
+        });
+        task_join_handles.push(rpc_join_handle);
+        info!("Started REST server");
     }
 
     // Start RPC server for CLI request and more. It's important that this is done as late

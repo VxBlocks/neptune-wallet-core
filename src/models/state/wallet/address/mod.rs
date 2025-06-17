@@ -11,7 +11,7 @@ mod receiving_address;
 
 pub mod encrypted_utxo_notification;
 pub mod generation_address;
-pub(crate) mod hash_lock_key;
+pub mod hash_lock_key;
 pub mod symmetric_key;
 
 pub use addressable_key::AddressableKey;

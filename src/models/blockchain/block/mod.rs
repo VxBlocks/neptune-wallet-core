@@ -255,6 +255,14 @@ impl Block {
         Ok(Block::new(header, body, appendix, proof))
     }
 
+    pub(crate) fn block_with_invalid_proof(&self) -> Self {
+        Self {
+            digest: self.digest.clone(),
+            kernel: self.kernel.clone(),
+            proof: BlockProof::Invalid,
+        }
+    }
+
     async fn make_block_template_with_valid_proof(
         predecessor: &Block,
         transaction: Transaction,
@@ -1042,7 +1050,7 @@ impl Block {
     /// The amounts in the UTXOs are taken from the transaction fee.
     ///
     /// The genesis block does not have a guesser reward.
-    pub(crate) fn guesser_fee_utxos(&self) -> Result<Vec<Utxo>, BlockValidationError> {
+    pub fn guesser_fee_utxos(&self) -> Result<Vec<Utxo>, BlockValidationError> {
         const MINER_REWARD_TIME_LOCK_PERIOD: Timestamp = Timestamp::years(3);
 
         if self.header().height.is_genesis() {
@@ -1095,7 +1103,7 @@ impl Block {
     /// Return the mutator set update corresponding to this block, which sends
     /// the mutator set accumulator after the predecessor to the mutator set
     /// accumulator after self.
-    pub(crate) fn mutator_set_update(&self) -> Result<MutatorSetUpdate, BlockValidationError> {
+    pub fn mutator_set_update(&self) -> Result<MutatorSetUpdate, BlockValidationError> {
         let mut mutator_set_update = MutatorSetUpdate::new(
             self.body().transaction_kernel.inputs.clone(),
             self.body().transaction_kernel.outputs.clone(),

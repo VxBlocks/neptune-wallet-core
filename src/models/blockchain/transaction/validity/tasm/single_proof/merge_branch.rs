@@ -49,7 +49,7 @@ const MERGE_WITNESS_ADDRESS: BFieldElement = BFieldElement::new(2);
 pub struct MergeWitness {
     pub(crate) left_kernel: TransactionKernel,
     pub(crate) right_kernel: TransactionKernel,
-    pub(crate) new_kernel: TransactionKernel,
+    pub new_kernel: TransactionKernel,
     pub(crate) left_proof: Proof,
     pub(crate) right_proof: Proof,
 }
@@ -58,7 +58,7 @@ impl MergeWitness {
     /// Generate a `MergeWitness` from two transactions (kernels plus proofs).
     /// Assumes the transactions can be merged. Also takes randomness for shuffling
     /// the concatenations of inputs, outputs, and public announcements.
-    pub(crate) fn from_transactions(
+    pub fn from_transactions(
         left_kernel: TransactionKernel,
         left_proof: Proof,
         right_kernel: TransactionKernel,

@@ -118,7 +118,7 @@ impl TransactionDetails {
     /// immediately) of which both are locked to the given lock script hash.
     /// The produced transaction is supported by a [`PrimitiveWitness`], so
     /// the caller still needs a follow-up proving operation.
-    pub(crate) fn fee_gobbler(
+    pub fn fee_gobbler(
         gobbled_fee: NativeCurrencyAmount,
         sender_randomness: Digest,
         mutator_set_accumulator: MutatorSetAccumulator,

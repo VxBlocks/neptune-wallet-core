@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use crate::models::blockchain::transaction::Transaction;
-use crate::models::state::mempool::TransactionOrigin;
+use crate::models::state::mempool::upgrade_priority::UpgradePriority;
 use crate::util_types::mutator_set::archival_mutator_set::{
     MmrMembershipProofEx, RequestMsMembershipProofEx,
 };
@@ -245,7 +245,7 @@ async fn broadcast_transaction(
     let mut state = rpcstate.state.lock_guard_mut().await;
 
     state
-        .mempool_insert(tx.transaction.clone(), TransactionOrigin::Foreign)
+        .mempool_insert(tx.transaction.clone(), UpgradePriority::Critical)
         .await;
     let _ = rpcstate
         .rpc_server_to_main_tx

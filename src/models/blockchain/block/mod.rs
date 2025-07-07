@@ -255,6 +255,14 @@ impl Block {
         Ok(Block::new(header, body, appendix, proof))
     }
 
+    pub(crate) fn block_with_invalid_proof(&self) -> Self {
+        Self {
+            digest: self.digest.clone(),
+            kernel: self.kernel.clone(),
+            proof: BlockProof::Invalid,
+        }
+    }
+
     async fn make_block_template_with_valid_proof(
         predecessor: &Block,
         transaction: Transaction,

@@ -56,7 +56,7 @@ impl WalletEntropy {
 
     /// Returns the receiving address for prover rewards, *i.e.*, composer fee
     /// or proof-upgrader (gobbling) fee.
-    pub(crate) fn prover_fee_address(&self) -> ReceivingAddress {
+    pub fn prover_fee_address(&self) -> ReceivingAddress {
         self.composer_fee_key().to_address().into()
     }
 

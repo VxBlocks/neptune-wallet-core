@@ -63,11 +63,11 @@ const MERGE_WITNESS_ADDRESS: BFieldElement = BFieldElement::new(2);
 #[derive(Debug, Clone, BFieldCodec, TasmObject)]
 pub struct MergeWitness {
     // This field, exceptionally, *CAN* contain packed `RemovalRecord`s.
-    pub(crate) left_kernel: TransactionKernel,
-    pub(crate) right_kernel: TransactionKernel,
+    pub left_kernel: TransactionKernel,
+    pub right_kernel: TransactionKernel,
     pub new_kernel: TransactionKernel,
-    pub(crate) left_proof: Proof,
-    pub(crate) right_proof: Proof,
+    pub left_proof: Proof,
+    pub right_proof: Proof,
 }
 
 impl MergeWitness {
@@ -106,7 +106,7 @@ impl MergeWitness {
     /// Generate a `MergeWitness` from two transactions (kernels plus proofs).
     /// Assumes the transactions can be merged. Takes randomness for shuffling
     /// the concatenations of inputs, outputs, and announcements.
-    pub(crate) fn from_transactions(
+    pub fn from_transactions(
         left: Transaction,
         right: Transaction,
         shuffle_seed: [u8; 32],

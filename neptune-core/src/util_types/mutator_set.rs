@@ -1,11 +1,14 @@
 use std::error::Error;
 use std::fmt;
 
+use itertools::Itertools;
 use tasm_lib::prelude::Digest;
+use tasm_lib::twenty_first::math::bfield_codec::BFieldCodec;
+use tasm_lib::twenty_first::prelude::Sponge;
 
 use self::addition_record::AdditionRecord;
 use crate::models::blockchain::shared::Hash;
-use crate::util_types::mutator_set::shared::BATCH_SIZE;
+use crate::util_types::mutator_set::shared::{BATCH_SIZE, CHUNK_SIZE, NUM_TRIALS, WINDOW_SIZE};
 
 pub mod active_window;
 pub mod addition_record;
@@ -38,6 +41,34 @@ pub enum MutatorSetError {
         current_max_chunk_index: u64,
         saw_chunk_index: u64,
     },
+}
+
+/// Get the (absolute) indices for removing this item from the mutator set.
+pub fn get_swbf_indices(
+    item: Digest,
+    sender_randomness: Digest,
+    receiver_preimage: Digest,
+    aocl_leaf_index: u64,
+) -> [u128; NUM_TRIALS as usize] {
+    let batch_index: u128 = u128::from(aocl_leaf_index) / u128::from(BATCH_SIZE);
+    let batch_offset: u128 = batch_index * u128::from(CHUNK_SIZE);
+    let leaf_index_bfes = aocl_leaf_index.encode();
+    let input = [
+        item.encode(),
+        sender_randomness.encode(),
+        receiver_preimage.encode(),
+        leaf_index_bfes,
+    ]
+    .concat();
+
+    let mut sponge = Hash::init();
+    Hash::pad_and_absorb_all(&mut sponge, &input);
+    Hash::sample_indices(&mut sponge, WINDOW_SIZE, NUM_TRIALS as usize)
+        .into_iter()
+        .map(|sample_index| u128::from(sample_index) + batch_offset)
+        .collect_vec()
+        .try_into()
+        .unwrap()
 }
 
 /// Generates an addition record from an item and explicit random-

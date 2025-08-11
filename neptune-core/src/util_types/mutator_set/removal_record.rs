@@ -1,13 +1,13 @@
-pub(crate) mod absolute_index_set;
+pub mod absolute_index_set;
 pub(crate) mod chunk;
-pub(crate) mod chunk_dictionary;
+pub mod chunk_dictionary;
 pub(crate) mod removal_record_list;
 
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::ops::IndexMut;
 
-use absolute_index_set::AbsoluteIndexSet;
+pub use absolute_index_set::AbsoluteIndexSet;
 #[cfg(any(test, feature = "arbitrary-impls"))]
 use arbitrary::Arbitrary;
 #[cfg(any(test, feature = "arbitrary-impls"))]

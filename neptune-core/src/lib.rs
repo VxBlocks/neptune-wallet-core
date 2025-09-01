@@ -39,6 +39,7 @@ pub mod rpc_auth;
 pub mod rpc_server;
 pub mod triton_vm_job_queue;
 pub mod util_types;
+pub mod jsonrpc_server;
 
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]

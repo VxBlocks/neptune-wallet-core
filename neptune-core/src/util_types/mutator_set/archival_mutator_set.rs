@@ -2,6 +2,9 @@ use std::collections::HashMap;
 use std::error::Error;
 
 use itertools::Itertools;
+use serde::Deserialize;
+use serde::Serialize;
+use tasm_lib::twenty_first::prelude::MmrMembershipProof;
 use tasm_lib::twenty_first::tip5::digest::Digest;
 use tasm_lib::twenty_first::util_types::mmr;
 use tasm_lib::twenty_first::util_types::mmr::mmr_accumulator::MmrAccumulator;
@@ -20,6 +23,18 @@ use crate::models::blockchain::shared::Hash;
 use crate::util_types::archival_mmr::ArchivalMmr;
 use crate::util_types::mutator_set::removal_record::absolute_index_set::AbsoluteIndexSet;
 use crate::util_types::mutator_set::MutatorSetError;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequestMsMembershipProofEx {
+    pub swbf_indices: Vec<u128>,
+    pub aocl_leaf_index: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MsMembershipProofEx {
+    pub auth_path_aocl: MmrMembershipProof,
+    pub target_chunks: ChunkDictionary,
+}
 
 #[derive(Debug, Clone)]
 pub struct ArchivalMutatorSet<MmrStorage, ChunkStorage>
@@ -241,6 +256,38 @@ where
         })
     }
 
+    pub async fn restore_membership_proof_ex(
+        &self,
+        requset: RequestMsMembershipProofEx,
+    ) -> Result<MsMembershipProofEx, Box<dyn Error>> {
+        if self.aocl.is_empty().await {
+            return Err(Box::new(MutatorSetError::MutatorSetIsEmpty));
+        }
+        let auth_path_aocl = self.get_aocl_authentication_path(requset.aocl_leaf_index).await?;
+
+        let batch_index = self.get_batch_index_async().await;
+        let window_start = batch_index * u128::from(CHUNK_SIZE);
+
+        let chunk_indices: Vec<u64> = requset.swbf_indices
+            .iter()
+            .filter(|bi| **bi < window_start)
+            .map(|bi| (*bi / u128::from(CHUNK_SIZE)) as u64)
+            .collect();
+        let mut target_chunks: ChunkDictionary = ChunkDictionary::default();
+
+        for chunk_index in chunk_indices.into_iter() {
+            target_chunks.insert(
+                chunk_index,
+                self.get_chunk_and_auth_path(chunk_index).await.unwrap(),
+            );
+        }
+
+        Ok(MsMembershipProofEx {
+            auth_path_aocl,
+            target_chunks,
+        })
+    }
+
     /// Revert the `RemovalRecord` by removing the indices that
     /// were inserted by it. These live in either the active window, or
     /// in a relevant chunk.
@@ -391,7 +438,7 @@ where
     /// Determine if the window slides before absorbing an item,
     /// given the index of the to-be-added item.
     pub fn window_slides(added_index: u64) -> bool {
-        added_index != 0 && added_index.is_multiple_of(u64::from(BATCH_SIZE))
+        added_index != 0 && added_index % u64::from(BATCH_SIZE) == 0
 
         // example cases:
         //  - index == 0 we don't care about

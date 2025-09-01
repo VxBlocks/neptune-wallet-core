@@ -1976,6 +1976,11 @@ impl MainLoopHandler {
                 // shut down
                 Ok(true)
             }
+            RPCServerToMain::BroadcastNotification(n) => {
+                let pmsg = MainToPeerTask::TransactionNotification(n);
+                self.main_to_peer_broadcast(pmsg);
+                Ok(false)
+            }
         }
     }
 

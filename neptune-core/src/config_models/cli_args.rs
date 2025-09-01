@@ -451,6 +451,10 @@ pub struct Args {
     /// Example: `neptune-core --scan-keys 42`
     #[clap(long)]
     pub(crate) scan_keys: Option<usize>,
+
+    /// e.g.: --send-proof-nodes 8.8.8.8:9800 --send-proof-nodes 8.8.8.8:9800.
+    #[structopt(long)]
+    pub send_proof_nodes: Vec<String>,
 }
 
 impl Default for Args {

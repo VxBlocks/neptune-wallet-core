@@ -178,7 +178,7 @@ pub struct Block {
     #[serde(skip)]
     #[bfield_codec(ignore)]
     #[get_size(ignore)]
-    digest: OnceLock<Digest>,
+    pub digest: OnceLock<Digest>,
 }
 
 impl MastHash for Block {
@@ -684,6 +684,14 @@ impl Block {
             digest: OnceLock::default(), // calc'd in hash()
             kernel,
             proof: block_proof,
+        }
+    }
+
+    pub fn block_with_invalid_proof(&self) -> Self {
+        Self {
+            digest: self.digest.clone(),
+            kernel: self.kernel.clone(),
+            proof: BlockProof::Invalid,
         }
     }
 

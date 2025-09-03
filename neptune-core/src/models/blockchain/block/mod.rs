@@ -173,7 +173,7 @@ pub struct Block {
     #[serde(skip)]
     #[bfield_codec(ignore)]
     #[get_size(ignore)]
-    digest: OnceLock<Digest>,
+    pub digest: OnceLock<Digest>,
 }
 
 impl MastHash for Block {

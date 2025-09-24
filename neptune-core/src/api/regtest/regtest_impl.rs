@@ -2,11 +2,11 @@ use tasm_lib::prelude::Digest;
 
 use super::error::RegTestError;
 use crate::api::export::Timestamp;
-use crate::models::blockchain::block::mock_block_generator::MockBlockGenerator;
-use crate::models::blockchain::block::Block;
-use crate::models::shared::SIZE_20MB_IN_BYTES;
-use crate::models::state::block_proposal::BlockProposal;
-use crate::models::state::wallet::expected_utxo::ExpectedUtxo;
+use crate::protocol::consensus::block::mock_block_generator::MockBlockGenerator;
+use crate::protocol::consensus::block::Block;
+use crate::protocol::shared::SIZE_20MB_IN_BYTES;
+use crate::state::mining::block_proposal::BlockProposal;
+use crate::state::wallet::expected_utxo::ExpectedUtxo;
 use crate::GlobalStateLock;
 use crate::RPCServerToMain;
 
@@ -133,12 +133,14 @@ impl RegTestPrivate {
         let tip_block = gs.chain.light_state_clone();
 
         let next_block_height = tip_block.header().height + 1;
-        let guesser_fraction = 0.5;
         let fee_notification_policy = Default::default();
+        let guesser_fraction = gs.cli().guesser_fraction;
+        let overridden_coinbase_distribution = gs.mining_state.overridden_coinbase_distribution();
         let composer_parameters = gs.wallet_state.composer_parameters(
             next_block_height,
             guesser_fraction,
             fee_notification_policy,
+            overridden_coinbase_distribution,
         );
 
         let guesser_key = gs.wallet_state.wallet_entropy.guesser_fee_key();
@@ -166,11 +168,7 @@ impl RegTestPrivate {
         );
 
         if find_valid_pow {
-            MockBlockGenerator::satisfy_mock_pow(
-                &mut block,
-                tip_block.header().difficulty,
-                rand::random(),
-            );
+            block.satisfy_mock_pow(tip_block.header().difficulty, rand::random());
         }
 
         (

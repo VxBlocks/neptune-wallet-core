@@ -23,9 +23,9 @@ use crossterm::terminal::disable_raw_mode;
 use crossterm::terminal::enable_raw_mode;
 use crossterm::terminal::EnterAlternateScreen;
 use crossterm::terminal::LeaveAlternateScreen;
-use neptune_cash::config_models::network::Network;
-use neptune_cash::rpc_auth;
-use neptune_cash::rpc_server::RPCClient;
+use neptune_cash::application::config::network::Network;
+use neptune_cash::application::rpc::auth;
+use neptune_cash::application::rpc::server::RPCClient;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Constraint;
 use ratatui::layout::Direction;
@@ -182,7 +182,7 @@ impl DashboardApp {
         config: Arc<Config>,
         rpc_server: Arc<RPCClient>,
         network: Network,
-        token: rpc_auth::Token,
+        token: auth::Token,
         listen_addr_for_peers: Option<SocketAddr>,
     ) -> Self {
         let mut screens = HashMap::<MenuItem, Rc<RefCell<dyn Screen>>>::new();
@@ -304,7 +304,7 @@ impl DashboardApp {
         config: Config,
         client: RPCClient,
         network: Network,
-        token: rpc_auth::Token,
+        token: auth::Token,
         listen_addr_for_peers: Option<SocketAddr>,
     ) -> Result<String, Box<dyn Error>> {
         // create app
@@ -476,8 +476,6 @@ impl DashboardApp {
         else {
             // delegate
             let escalated: Option<DashboardEvent> = match self.current_menu_item {
-                // MenuItem::Overview => todo!(),
-                // MenuItem::Peers => todo!(),
                 MenuItem::Address => {
                     let mut address_screen = self.address_screen.as_ref().borrow_mut();
                     address_screen.handle(event)
@@ -498,7 +496,6 @@ impl DashboardApp {
                     let mut send_screen = self.send_screen.as_ref().borrow_mut();
                     send_screen.handle(event, refresh_tx)
                 }
-                // MenuItem::Quit => todo!(),
                 _ => Some(event),
             };
 

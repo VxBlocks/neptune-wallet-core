@@ -24,22 +24,12 @@
 // danda: making all of these pub for now, so docs are generated.
 // later maybe we ought to split some stuff out into re-usable crate(s)...?
 pub mod api;
-pub mod config_models;
-pub mod connect_to_peers;
-pub mod database;
-pub mod job_queue;
-pub mod locks;
+pub mod application;
 pub mod macros;
-pub mod main_loop;
-pub mod mine_loop;
-pub mod models;
-pub mod peer_loop;
 pub mod prelude;
-pub mod rpc_auth;
-pub mod rpc_server;
-pub mod triton_vm_job_queue;
+pub mod protocol;
+pub mod state;
 pub mod util_types;
-pub mod jsonrpc_server;
 
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
@@ -53,21 +43,21 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 use anyhow::Result;
+use application::config::cli_args;
 use chrono::DateTime;
 use chrono::Local;
 use chrono::Utc;
-use config_models::cli_args;
 use futures::future;
 use futures::Future;
 use futures::StreamExt;
-use models::blockchain::block::Block;
-use models::blockchain::shared::Hash;
-use models::peer::handshake_data::HandshakeData;
-use models::state::wallet::wallet_file::WalletFileContext;
-use models::state::GlobalState;
+use itertools::Itertools;
 use prelude::tasm_lib;
 use prelude::triton_vm;
 use prelude::twenty_first;
+use protocol::consensus::block::Block;
+use protocol::peer::handshake_data::HandshakeData;
+use state::wallet::wallet_file::WalletFileContext;
+use state::GlobalState;
 use tarpc::server;
 use tarpc::server::incoming::Incoming;
 use tarpc::server::Channel;
@@ -80,19 +70,19 @@ use tracing::debug;
 use tracing::info;
 use triton_vm::prelude::BFieldElement;
 
-use crate::config_models::data_directory::DataDirectory;
-use crate::connect_to_peers::call_peer;
-use crate::locks::tokio as sync_tokio;
-use crate::main_loop::MainLoopHandler;
-use crate::models::channel::MainToMiner;
-use crate::models::channel::MainToPeerTask;
-use crate::models::channel::MinerToMain;
-use crate::models::channel::PeerTaskToMain;
-use crate::models::channel::RPCServerToMain;
-use crate::models::state::archival_state::ArchivalState;
-use crate::models::state::wallet::wallet_state::WalletState;
-use crate::models::state::GlobalStateLock;
-use crate::rpc_server::RPC;
+use crate::application::config::data_directory::DataDirectory;
+use crate::application::locks::tokio as sync_tokio;
+use crate::application::loops::channel::MainToMiner;
+use crate::application::loops::channel::MainToPeerTask;
+use crate::application::loops::channel::MinerToMain;
+use crate::application::loops::channel::PeerTaskToMain;
+use crate::application::loops::channel::RPCServerToMain;
+use crate::application::loops::connect_to_peers::call_peer;
+use crate::application::loops::main_loop::MainLoopHandler;
+use crate::application::rpc::server::RPC;
+use crate::state::archival_state::ArchivalState;
+use crate::state::wallet::wallet_state::WalletState;
+use crate::state::GlobalStateLock;
 
 pub const SUCCESS_EXIT_CODE: i32 = 0;
 pub const COMPOSITION_FAILED_EXIT_CODE: i32 = 159;
@@ -170,6 +160,13 @@ pub async fn initialize(cli_args: cli_args::Args) -> Result<MainLoopHandler> {
         );
     }
 
+    if !cli_args.whitelisted_composers.is_empty() {
+        info!(
+            "Whitelisted composers:\n{}",
+            cli_args.whitelisted_composers.iter().join("\n")
+        );
+    }
+
     // Check if we need to restore the wallet database, and if so, do it.
     info!("Checking if we need to restore UTXOs");
     global_state_lock
@@ -204,19 +201,17 @@ pub async fn initialize(cli_args: cli_args::Args) -> Result<MainLoopHandler> {
         let main_to_peer_broadcast_rx_clone: broadcast::Receiver<MainToPeerTask> =
             main_to_peer_broadcast_tx.subscribe();
         let peer_task_to_main_tx_clone: mpsc::Sender<PeerTaskToMain> = peer_task_to_main_tx.clone();
-        let peer_join_handle = tokio::task::Builder::new()
-            .name("call_peer_wrapper_3")
-            .spawn(async move {
-                call_peer(
-                    peer_address,
-                    peer_state_var.clone(),
-                    main_to_peer_broadcast_rx_clone,
-                    peer_task_to_main_tx_clone,
-                    own_handshake_data,
-                    1, // All outgoing connections have distance 1
-                )
-                .await;
-            })?;
+        let peer_join_handle = tokio::task::spawn(async move {
+            call_peer(
+                peer_address,
+                peer_state_var.clone(),
+                main_to_peer_broadcast_rx_clone,
+                peer_task_to_main_tx_clone,
+                own_handshake_data,
+                1, // All outgoing connections have distance 1
+            )
+            .await;
+        });
         task_join_handles.push(peer_join_handle);
     }
     debug!("Made outgoing connections to peers");
@@ -226,46 +221,17 @@ pub async fn initialize(cli_args: cli_args::Args) -> Result<MainLoopHandler> {
     let (main_to_miner_tx, main_to_miner_rx) = mpsc::channel::<MainToMiner>(MINER_CHANNEL_CAPACITY);
     let miner_state_lock = global_state_lock.clone(); // bump arc refcount.
     if global_state_lock.cli().mine() {
-        let miner_join_handle = tokio::task::Builder::new()
-            .name("miner")
-            .spawn(async move {
-                mine_loop::mine(main_to_miner_rx, miner_to_main_tx, miner_state_lock)
-                    .await
-                    .expect("Error in mining task");
-            })?;
+        let miner_join_handle = tokio::task::spawn(async move {
+            application::loops::mine_loop::mine(
+                main_to_miner_rx,
+                miner_to_main_tx,
+                miner_state_lock,
+            )
+            .await
+            .expect("Error in mining task");
+        });
         task_join_handles.push(miner_join_handle);
         info!("Started mining task");
-    }
-
-    #[cfg(feature = "rest")]
-    if let Some(rest_port) = global_state_lock.cli().rest_port {
-        let rest_listener = TcpListener::bind(format!("0.0.0.0:{}", rest_port)).await?;
-
-        let rpc_state_lock = global_state_lock.clone();
-
-        let data_directory = data_directory.clone();
-        let rpc_server_to_main_tx = rpc_server_to_main_tx.clone();
-
-        // each time we start neptune-core a new RPC cookie is generated.
-        let valid_tokens: Vec<rpc_auth::Token> =
-            vec![crate::rpc_auth::Cookie::try_new(&data_directory)
-                .await?
-                .into()];
-
-        let rpc_join_handle = tokio::spawn(async move {
-            let server = rpc_server::NeptuneRPCServer::new(
-                rpc_state_lock.clone(),
-                rpc_server_to_main_tx.clone(),
-                data_directory.clone(),
-                valid_tokens.clone(),
-            );
-
-            jsonrpc_server::run_rpc_server(rest_listener, server)
-                .await
-                .expect("Error in REST server task");
-        });
-        task_join_handles.push(rpc_join_handle);
-        info!("Started REST server");
     }
 
     // Start RPC server for CLI request and more. It's important that this is done as late
@@ -280,10 +246,11 @@ pub async fn initialize(cli_args: cli_args::Args) -> Result<MainLoopHandler> {
     let rpc_state_lock = global_state_lock.clone();
 
     // each time we start neptune-core a new RPC cookie is generated.
-    let valid_tokens: Vec<rpc_auth::Token> =
-        vec![crate::rpc_auth::Cookie::try_new(&data_directory)
+    let valid_tokens: Vec<application::rpc::auth::Token> = vec![
+        crate::application::rpc::auth::Cookie::try_new(&data_directory)
             .await?
-            .into()];
+            .into(),
+    ];
 
     let rpc_join_handle = tokio::spawn(async move {
         rpc_listener
@@ -295,7 +262,7 @@ pub async fn initialize(cli_args: cli_args::Args) -> Result<MainLoopHandler> {
             // serve is generated by the service attribute. It takes as input any type implementing
             // the generated RPC trait.
             .map(move |channel| {
-                let server = rpc_server::NeptuneRPCServer::new(
+                let server = application::rpc::server::NeptuneRPCServer::new(
                     rpc_state_lock.clone(),
                     rpc_server_to_main_tx.clone(),
                     data_directory.clone(),

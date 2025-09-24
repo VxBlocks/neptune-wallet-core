@@ -7,14 +7,14 @@ use std::time::SystemTime;
 
 use bytesize::ByteSize;
 use itertools::Itertools;
-use neptune_cash::config_models::network::Network;
-use neptune_cash::models::blockchain::block::block_header::BlockHeader;
-use neptune_cash::models::blockchain::block::block_height::BlockHeight;
-use neptune_cash::models::blockchain::type_scripts::native_currency_amount::NativeCurrencyAmount;
-use neptune_cash::models::state::mining_status::MiningStatus;
-use neptune_cash::models::state::tx_proving_capability::TxProvingCapability;
-use neptune_cash::rpc_auth;
-use neptune_cash::rpc_server::RPCClient;
+use neptune_cash::application::config::network::Network;
+use neptune_cash::application::rpc::auth;
+use neptune_cash::application::rpc::server::RPCClient;
+use neptune_cash::protocol::consensus::block::block_header::BlockHeader;
+use neptune_cash::protocol::consensus::block::block_height::BlockHeight;
+use neptune_cash::protocol::consensus::type_scripts::native_currency_amount::NativeCurrencyAmount;
+use neptune_cash::state::mining::mining_status::MiningStatus;
+use neptune_cash::state::transaction::tx_proving_capability::TxProvingCapability;
 use ratatui::layout::Margin;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -92,7 +92,7 @@ pub struct OverviewScreen {
     in_focus: bool,
     data: Arc<std::sync::Mutex<OverviewData>>,
     server: Arc<RPCClient>,
-    token: rpc_auth::Token,
+    token: auth::Token,
     poll_task: Option<Arc<Mutex<JoinHandle<()>>>>,
     escalatable_event: Arc<std::sync::Mutex<Option<DashboardEvent>>>,
 }
@@ -101,7 +101,7 @@ impl OverviewScreen {
     pub fn new(
         rpc_server: Arc<RPCClient>,
         network: Network,
-        token: rpc_auth::Token,
+        token: auth::Token,
         listen_addr_for_peers: Option<SocketAddr>,
     ) -> Self {
         Self {
@@ -122,7 +122,7 @@ impl OverviewScreen {
 
     async fn run_polling_loop(
         rpc_client: Arc<RPCClient>,
-        token: rpc_auth::Token,
+        token: auth::Token,
         overview_data: Arc<std::sync::Mutex<OverviewData>>,
         escalatable_event: Arc<std::sync::Mutex<Option<DashboardEvent>>>,
     ) {
@@ -177,38 +177,6 @@ impl OverviewScreen {
                         Err(e) => *escalatable_event.lock().unwrap() = Some(DashboardEvent::Shutdown(e.to_string())),
                     }
                 }
-
-                // _ = &mut mempool_size => {
-                //     match rpc_client.get_mempool_size(context::current()).await {
-                //         Ok(ms) => {
-                //             overview_data.lock().unwrap().mempool_size=Some(ByteSize::b(ms.try_into().unwrap()));
-                //             reset_poller!(mempool_size,Duration::from_secs(10));
-                //         },
-                //         Err(e) => *escalatable_event.lock().unwrap() = Some(DashboardEvent::Shutdown(e.to_string())),
-                //     }
-                // }
-
-                // _ = &mut mempool_tx_count => {
-                //     match rpc_client.get_mempool_tx_count(context::current()).await {
-                //         Ok(txc) => {
-                //             overview_data.lock().unwrap().mempool_tx_count = Some(txc.try_into().unwrap());
-                //             reset_poller!(mempool_tx_count, Duration::from_secs(10));
-                //         },
-                //         Err(e) => *escalatable_event.lock().unwrap() = Some(DashboardEvent::Shutdown(e.to_string())),
-                //     }
-                // }
-
-                // _ = &mut peer_count => {
-                //     match rpc_client.get_peer_info(context::current()).await {
-                //         Ok(peers) => {
-                //             let num_peers=peers.len();
-                //             overview_data.lock().unwrap().peer_count=Some(num_peers);
-                //             overview_data.lock().unwrap().authenticated_peer_count=Some(0);
-                //             reset_poller!(peer_count,Duration::from_secs(5));
-                //         },
-                //         Err(e) => *escalatable_event.lock().unwrap() = Some(DashboardEvent::Shutdown(e.to_string())),
-                //     }
-                // }
             }
         }
     }
@@ -384,8 +352,7 @@ impl Widget for OverviewScreen {
         ));
 
         let tip_digest_hex = data.tip_digest.map(|d| d.to_hex());
-        lines.push(format!("tip (hex): {}\n", dashifnotset!(tip_digest_hex),));
-        lines.push(format!("tip (raw): {}\n\n", dashifnotset!(data.tip_digest),));
+        lines.push(format!("tip: {}\n", dashifnotset!(tip_digest_hex),));
 
         lines.push(format!(
             "latest block timestamp: {}",

@@ -19,21 +19,21 @@ use crate::api::export::Transaction;
 use crate::api::export::TransactionDetails;
 use crate::api::export::TransactionProof;
 use crate::api::export::TxInput;
-use crate::config_models::cli_args;
-use crate::config_models::data_directory::DataDirectory;
-use crate::models::blockchain::block::block_transaction::BlockTransaction;
-use crate::models::blockchain::block::validity::block_primitive_witness::BlockPrimitiveWitness;
-use crate::models::blockchain::block::validity::block_proof_witness::BlockProofWitness;
-use crate::models::blockchain::block::Block;
-use crate::models::blockchain::block::BlockProof;
-use crate::models::blockchain::transaction::primitive_witness::PrimitiveWitness;
-use crate::models::blockchain::transaction::transaction_kernel::TransactionKernelModifier;
-use crate::models::channel::RPCServerToMain;
-use crate::models::state::wallet::transaction_output::TxOutput;
-use crate::models::state::wallet::wallet_configuration::WalletConfiguration;
-use crate::models::state::wallet::wallet_entropy::WalletEntropy;
-use crate::models::state::wallet::wallet_state::WalletState;
-use crate::models::state::GlobalState;
+use crate::application::config::cli_args;
+use crate::application::config::data_directory::DataDirectory;
+use crate::application::loops::channel::RPCServerToMain;
+use crate::protocol::consensus::block::block_transaction::BlockTransaction;
+use crate::protocol::consensus::block::validity::block_primitive_witness::BlockPrimitiveWitness;
+use crate::protocol::consensus::block::validity::block_proof_witness::BlockProofWitness;
+use crate::protocol::consensus::block::Block;
+use crate::protocol::consensus::block::BlockProof;
+use crate::protocol::consensus::transaction::primitive_witness::PrimitiveWitness;
+use crate::protocol::consensus::transaction::transaction_kernel::TransactionKernelModifier;
+use crate::state::wallet::transaction_output::TxOutput;
+use crate::state::wallet::wallet_configuration::WalletConfiguration;
+use crate::state::wallet::wallet_entropy::WalletEntropy;
+use crate::state::wallet::wallet_state::WalletState;
+use crate::state::GlobalState;
 use crate::util_types::mutator_set::removal_record::removal_record_list::RemovalRecordList;
 use crate::RPC_CHANNEL_CAPACITY;
 
@@ -116,7 +116,7 @@ pub async fn next_block_incoming_utxos(
 
     let msa = parent.mutator_set_accumulator_after().unwrap();
     let wallet_status = sender.get_wallet_status(parent.hash(), &msa).await;
-    let available_balance = wallet_status.synced_unspent_available_amount(timestamp);
+    let available_balance = wallet_status.available_confirmed(timestamp);
     let change_amt = available_balance.checked_sub(&intermediate_spend).unwrap();
 
     outputs.push((recipient.clone(), change_amt));

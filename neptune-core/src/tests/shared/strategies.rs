@@ -1,18 +1,20 @@
 use itertools::Itertools;
-use proptest::{collection, prelude::*};
+use proptest::collection;
+use proptest::prelude::*;
 use proptest_arbitrary_interop::arb;
 use tasm_lib::prelude::Digest;
 use tasm_lib::twenty_first::prelude::MmrMembershipProof;
 
-use crate::api::export::{NativeCurrencyAmount, Timestamp, Transaction};
+use crate::api::export::NativeCurrencyAmount;
+use crate::api::export::Timestamp;
+use crate::api::export::Transaction;
+pub use crate::protocol::consensus::block::tests::arbitrary_kernel as block_with_arbkernel;
 use crate::util_types::mutator_set::addition_record::AdditionRecord;
 use crate::util_types::mutator_set::ms_membership_proof::MsMembershipProof;
 use crate::util_types::mutator_set::removal_record::absolute_index_set::AbsoluteIndexSet;
 use crate::util_types::mutator_set::removal_record::chunk::Chunk;
 use crate::util_types::mutator_set::removal_record::chunk_dictionary::ChunkDictionary;
 use crate::util_types::mutator_set::removal_record::RemovalRecord;
-
-pub use crate::models::blockchain::block::tests::arbitrary_kernel as block_with_arbkernel;
 use crate::util_types::mutator_set::shared::NUM_TRIALS;
 
 pub mod txkernel;
@@ -106,7 +108,7 @@ pub fn make_mock_transaction_with_wallet(
     inputs: Vec<RemovalRecord>,
     outputs: Vec<AdditionRecord>,
     fee: NativeCurrencyAmount,
-    _wallet_state: &crate::models::state::wallet::wallet_state::WalletState,
+    _wallet_state: &crate::state::wallet::wallet_state::WalletState,
     timestamp: Option<Timestamp>,
 ) -> proptest::prelude::BoxedStrategy<Transaction> {
     txkernel::with_usualtxdata(

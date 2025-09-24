@@ -24,20 +24,20 @@ use crate::api::tx_initiation::builder::tx_input_list_builder::InputSelectionPol
 use crate::api::tx_initiation::builder::tx_input_list_builder::TxInputListBuilder;
 use crate::api::tx_initiation::builder::tx_output_list_builder::OutputFormat;
 use crate::api::tx_initiation::builder::tx_output_list_builder::TxOutputListBuilder;
-use crate::models::blockchain::consensus_rule_set::ConsensusRuleSet;
-use crate::models::blockchain::transaction::primitive_witness::PrimitiveWitness;
-use crate::models::blockchain::transaction::transaction_proof::TransactionProofType;
-use crate::models::blockchain::transaction::Transaction;
-use crate::models::blockchain::transaction::TransactionProof;
-use crate::models::blockchain::type_scripts::native_currency_amount::NativeCurrencyAmount;
-use crate::models::state::transaction_details::TransactionDetails;
-use crate::models::state::transaction_kernel_id::TransactionKernelId;
-use crate::models::state::tx_creation_artifacts::TxCreationArtifacts;
-use crate::models::state::wallet::change_policy::ChangePolicy;
-use crate::models::state::wallet::transaction_input::TxInput;
-use crate::models::state::wallet::transaction_input::TxInputList;
-use crate::models::state::wallet::transaction_output::TxOutputList;
-use crate::triton_vm_job_queue::vm_job_queue;
+use crate::application::triton_vm_job_queue::vm_job_queue;
+use crate::protocol::consensus::consensus_rule_set::ConsensusRuleSet;
+use crate::protocol::consensus::transaction::primitive_witness::PrimitiveWitness;
+use crate::protocol::consensus::transaction::transaction_proof::TransactionProofType;
+use crate::protocol::consensus::transaction::Transaction;
+use crate::protocol::consensus::transaction::TransactionProof;
+use crate::protocol::consensus::type_scripts::native_currency_amount::NativeCurrencyAmount;
+use crate::state::transaction::transaction_details::TransactionDetails;
+use crate::state::transaction::transaction_kernel_id::TransactionKernelId;
+use crate::state::transaction::tx_creation_artifacts::TxCreationArtifacts;
+use crate::state::wallet::change_policy::ChangePolicy;
+use crate::state::wallet::transaction_input::TxInput;
+use crate::state::wallet::transaction_input::TxInputList;
+use crate::state::wallet::transaction_output::TxOutputList;
 use crate::GlobalStateLock;
 
 /// provides an API for building and sending neptune transactions.
@@ -100,26 +100,6 @@ impl TransactionInitiator {
         TxOutputListBuilder::new()
             .outputs(outputs)
             .build(&self.global_state_lock.clone().into())
-            .await
-    }
-
-    /// generates [TransactionDetails] from inputs and outputs
-    ///
-    /// see [TransactionDetailsBuilder] for details.
-    pub async fn generate_tx_details(
-        &mut self,
-        inputs: TxInputList,
-        outputs: TxOutputList,
-        change_policy: ChangePolicy,
-        fee: NativeCurrencyAmount,
-    ) -> Result<TransactionDetails, error::CreateTxError> {
-        TransactionDetailsBuilder::new()
-            .timestamp(Timestamp::now())
-            .inputs(inputs)
-            .outputs(outputs)
-            .fee(fee)
-            .change_policy(change_policy)
-            .build(&mut self.global_state_lock.clone().into())
             .await
     }
 

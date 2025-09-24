@@ -3,10 +3,10 @@ name = "neptune-cash"
 description = "A layer-1 cryptocurrency featuring scalable privacy and post-quantum security."
 authors = ["Triton Software"]
 
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 license = "Apache-2.0"
-readme = "README.md"
+readme = "../README.md"
 
 homepage = "https://neptune.cash/"
 repository = "https://github.com/Neptune-Crypto/neptune-core/"
@@ -14,11 +14,6 @@ repository = "https://github.com/Neptune-Crypto/neptune-core/"
 default-run = "neptune-core"
 
 [features]
-default = [
-    "rest",
-]
-
-rest = ["dep:axum","dep:tower-http","dep:axum-extra","dep:sqlite"]
 
 # logs write-lock acquisitions that are held over 100 millis.  requires nightly.
 # to enable: cargo +nightly build --features log-slow-write-lock
@@ -119,12 +114,6 @@ thread-priority = "1.2.0"
 rayon = "1.10"
 humantime = "2.1.0"
 
-axum = { version = "0.8.1", optional = true }
-tower-http = { version = "0.6.2", features = [ "cors", "trace", "limit" ], optional = true }
-axum-extra = { version = "0.10.0", features = ["erased-json"], optional = true }
-sqlite = {version = "0.37.0", optional = true }
-reqwest = { version = "0.11", features = ["json"] }
-
 [dev-dependencies]
 
 # note: arbitrary, proptest, proptest-arbitrary-interop are duplicated in [dev-dependencies]
@@ -145,7 +134,6 @@ rayon = "1.10"
 statrs = "0.18.0"
 test-strategy = "0.3"
 tokio-test = "0.4"
-strum = { version = "*", features = ["derive"] }         # it's already in the dependencies via `tasm-lib`
 
 [[bin]]
 name = "neptune-core"
@@ -158,29 +146,36 @@ workspace = true
 
 [[bench]]
 name = "sync_atomic"
+path = "benchmark/benches/sync_atomic.rs"
 harness = false
 
 [[bench]]
 name = "db_leveldb"
+path = "benchmark/benches/db_leveldb.rs"
 harness = false
 
 [[bench]]
 name = "db_dbtvec"
+path = "benchmark/benches/db_dbtvec.rs"
 harness = false
 
 [[bench]]
 name = "archival_mmr"
+path = "benchmark/benches/archival_mmr.rs"
 harness = false
 
 [[bench]]
 name = "consensus"
+path = "benchmark/benches/consensus.rs"
 harness = false
 required-features = ["arbitrary-impls"]
 
 [[bench]]
 name = "fast_kernel_mast_hash"
+path = "benchmark/benches/fast_kernel_mast_hash.rs"
 harness = false
 
 [[bench]]
 name = "wallet_state"
+path = "benchmark/benches/wallet_state.rs"
 harness = false

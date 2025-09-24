@@ -3,15 +3,14 @@ mod common;
 use std::fs::File;
 use std::io::Write;
 
+use common::logging;
 use neptune_cash::api::export::BlockHeight;
 use neptune_cash::api::export::NativeCurrencyAmount;
 use neptune_cash::api::export::Network;
 use neptune_cash::api::export::Timestamp;
-use neptune_cash::models::blockchain::block::Block;
-use tasm_lib::twenty_first::math::b_field_element::BFieldElement;
-
-use common::logging;
+use neptune_cash::protocol::consensus::block::Block;
 use tasm_lib::twenty_first::bfe;
+use tasm_lib::twenty_first::math::b_field_element::BFieldElement;
 
 use crate::common::fetch_files::test_helper_data_dir;
 use crate::common::fetch_files::try_fetch_file_from_server;
@@ -81,9 +80,7 @@ async fn can_restore_from_real_mainnet_data_with_reorganizations() {
     // premine reward, since the devnet reward was not spent during first
     // blocks.
     let wallet_status = state.get_wallet_status_for_tip().await;
-    let balance = state
-        .wallet_state
-        .confirmed_available_balance(&wallet_status, network.launch_date() + Timestamp::months(7));
+    let balance = wallet_status.available_confirmed(network.launch_date() + Timestamp::months(7));
     assert_eq!(
         NativeCurrencyAmount::coins(20),
         balance,

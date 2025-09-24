@@ -3,9 +3,9 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::models::blockchain::type_scripts::native_currency_amount::NativeCurrencyAmount;
-use crate::models::proof_abstractions::timestamp::Timestamp;
-use crate::models::state::GlobalState;
+use crate::protocol::consensus::type_scripts::native_currency_amount::NativeCurrencyAmount;
+use crate::protocol::proof_abstractions::timestamp::Timestamp;
+use crate::state::GlobalState;
 
 /// represents the 4 native-currency wallet balances that neptune-core tracks.
 ///
@@ -50,14 +50,15 @@ impl std::fmt::Display for WalletBalances {
 
 impl WalletBalances {
     pub(super) async fn from_global_state(gs: &GlobalState, timestamp: Timestamp) -> Self {
-        let status = gs.get_wallet_status_for_tip().await;
-        let ws = &gs.wallet_state;
+        let wallet_status = gs.get_wallet_status_for_tip().await;
+        let wallet_state = &gs.wallet_state;
 
         Self {
-            confirmed_available: ws.confirmed_available_balance(&status, timestamp),
-            confirmed_total: ws.confirmed_total_balance(&status),
-            unconfirmed_available: ws.unconfirmed_available_balance(&status, timestamp),
-            unconfirmed_total: ws.unconfirmed_total_balance(&status),
+            confirmed_available: wallet_status.available_confirmed(timestamp),
+            confirmed_total: wallet_status.total_confirmed(),
+            unconfirmed_available: wallet_state
+                .unconfirmed_available_balance(&wallet_status, timestamp),
+            unconfirmed_total: wallet_state.unconfirmed_total_balance(&wallet_status),
         }
     }
 }

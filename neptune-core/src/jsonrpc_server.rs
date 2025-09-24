@@ -485,10 +485,12 @@ async fn broadcast_transaction(
 ) -> Result<ErasedJson, RestError> {
     // Interface uses `TransferTransaction` so caller gets a type guarantee
     // that no secrets are leaked.
+    info!("broadcast_tx body size: {}", body.len());
     let tx: TransferTransaction =
         bincode::deserialize_from(body.reader()).context("deserialize error")?;
+    info!("broadcast_tx body 11");
     let tx: Transaction = tx.try_into().context("Failed to convert to transaction")?;
-
+    info!("broadcast_tx body 22");
     // Is transaction valid?
     let cli = rpcstate.state.cli();
     let network = cli.network;
@@ -496,13 +498,14 @@ async fn broadcast_transaction(
     if !tx.is_valid(network, consensus_rule_set).await {
         return Err(RestError("Received transaction is not valid".to_owned()));
     }
-
+info!("broadcast_tx body 33");
+    // Is transaction a coinbase transaction?
     if tx.kernel.coinbase.is_some() {
         return Err(RestError(
             "Does not accept coinbase transactions".to_owned(),
         ));
     }
-
+info!("broadcast_tx body 44");
     // Require a non-negative transaction fee.
     if tx.kernel.fee.is_negative() {
         return Err(RestError("Fee may not be negative, or zero".to_owned()));
@@ -516,7 +519,7 @@ async fn broadcast_transaction(
             "Received tx too far into the future. Got timestamp {timestamp}"
         )));
     }
-
+info!("broadcast_tx body 55");
     // Is transaction confirmable?
     let mut state = rpcstate.state.lock_guard_mut().await;
     let msa = state

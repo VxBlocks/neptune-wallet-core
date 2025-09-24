@@ -4,13 +4,14 @@ use std::str::FromStr;
 use get_size2::GetSize;
 use serde::Deserialize;
 use serde::Serialize;
+use strum::EnumIter;
 use tasm_lib::twenty_first::math::b_field_element::BFieldElement;
 
 use crate::protocol::consensus::block::difficulty_control::Difficulty;
 use crate::protocol::proof_abstractions::timestamp::Timestamp;
 
 #[derive(
-    Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Default, strum::EnumIs, GetSize,
+    Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Default, EnumIter, strum::EnumIs, GetSize,
 )]
 #[non_exhaustive]
 pub enum Network {

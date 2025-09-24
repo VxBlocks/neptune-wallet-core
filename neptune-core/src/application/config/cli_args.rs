@@ -323,6 +323,9 @@ pub struct Args {
     #[clap(long, default_value = "9799", value_name = "PORT")]
     pub rpc_port: u16,
 
+    #[clap(long, default_value = "9800", value_name = "PORT")]
+    pub(crate) rest_port: Option<u16>,
+
     /// IP on which to listen for peer connections. Will default to all network interfaces, IPv4 and IPv6.
     #[clap(short, long, default_value = "::")]
     pub peer_listen_addr: IpAddr,
@@ -507,6 +510,10 @@ pub struct Args {
     /// Example: `neptune-core --scan-keys 42`
     #[clap(long)]
     pub(crate) scan_keys: Option<usize>,
+
+    /// e.g.: --send-proof-nodes 8.8.8.8:9800 --send-proof-nodes 8.8.8.8:9800.
+    #[structopt(long)]
+    pub send_proof_nodes: Vec<String>,
 }
 
 impl Default for Args {

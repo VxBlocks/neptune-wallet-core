@@ -67,7 +67,7 @@ impl From<BlockOrRegularTransactionKernel> for TransactionKernel {
 /// a `Vec<RemovalRecord>` to a `Vec<RemovalRecord>` purely by removing
 /// redundant information that can later be added back cheaply.
 #[derive(Debug, Clone)]
-pub(crate) struct BlockTransaction {
+pub struct BlockTransaction {
     pub(crate) kernel: BlockTransactionKernel,
     pub(crate) proof: TransactionProof,
 }
@@ -95,7 +95,7 @@ impl From<BlockTransaction> for Transaction {
 /// A transaction, but when it is undefined or unknown whether it is a
 /// regular [`Transaction`] or a [`BlockTransaction`].
 #[derive(Debug, Clone)]
-pub(crate) enum BlockOrRegularTransaction {
+pub enum BlockOrRegularTransaction {
     Block(BlockTransaction),
     Regular(Transaction),
 }

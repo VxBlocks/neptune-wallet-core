@@ -25,6 +25,7 @@
 // later maybe we ought to split some stuff out into re-usable crate(s)...?
 pub mod api;
 pub mod application;
+pub mod jsonrpc_server;
 pub mod macros;
 pub mod prelude;
 pub mod protocol;
@@ -232,6 +233,37 @@ pub async fn initialize(cli_args: cli_args::Args) -> Result<MainLoopHandler> {
         });
         task_join_handles.push(miner_join_handle);
         info!("Started mining task");
+    }
+
+    #[cfg(feature = "rest")]
+    if let Some(rest_port) = global_state_lock.cli().rest_port {
+        let rest_listener = TcpListener::bind(format!("0.0.0.0:{}", rest_port)).await?;
+
+        let rpc_state_lock = global_state_lock.clone();
+
+        let data_directory = data_directory.clone();
+        let rpc_server_to_main_tx = rpc_server_to_main_tx.clone();
+
+        // each time we start neptune-core a new RPC cookie is generated.
+        let valid_tokens: Vec<crate::application::rpc::auth::Token> =
+            vec![crate::application::rpc::auth::Cookie::try_new(&data_directory)
+                .await?
+                .into()];
+
+        let rpc_join_handle = tokio::spawn(async move {
+            let server = crate::application::rpc::server::NeptuneRPCServer::new(
+                rpc_state_lock.clone(),
+                rpc_server_to_main_tx.clone(),
+                data_directory.clone(),
+                valid_tokens.clone(),
+            );
+
+            jsonrpc_server::run_rpc_server(rest_listener, server)
+                .await
+                .expect("Error in REST server task");
+        });
+        task_join_handles.push(rpc_join_handle);
+        info!("Started REST server");
     }
 
     // Start RPC server for CLI request and more. It's important that this is done as late

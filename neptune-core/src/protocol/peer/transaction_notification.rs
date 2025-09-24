@@ -17,7 +17,7 @@ use crate::tasm_lib::prelude::Digest;
 /// that interested peers can request the full transaction object from this
 /// sender.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub(crate) struct TransactionNotification {
+pub struct TransactionNotification {
     /// A unique identifier of the transaction. Matches keys in the [mempool]
     /// data structure.
     ///

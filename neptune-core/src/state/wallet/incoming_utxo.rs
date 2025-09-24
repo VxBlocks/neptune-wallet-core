@@ -23,7 +23,7 @@ use crate::util_types::mutator_set::addition_record::AdditionRecord;
 /// See [UtxoNotificationPayload], [ExpectedUtxo]
 #[derive(Clone, Debug)]
 #[cfg_attr(any(test, feature = "arbitrary-impls"), derive(Arbitrary))]
-pub(crate) struct IncomingUtxo {
+pub struct IncomingUtxo {
     pub(crate) utxo: Utxo,
     pub(crate) sender_randomness: Digest,
     pub(crate) receiver_preimage: Digest,

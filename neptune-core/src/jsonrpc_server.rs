@@ -487,7 +487,13 @@ async fn broadcast_transaction(
     // that no secrets are leaked.
     info!("broadcast_tx body size: {}", body.len());
     let tx: TransferTransaction =
-        bincode::deserialize_from(body.reader()).context("deserialize error")?;
+    match bincode::deserialize_from(body.reader()).context("deserialize error"){
+        Ok(tx) => tx,
+        Err(e) => {
+            info!("broadcast_tx body {:#?}", e);
+            return Err(RestError(e.to_string()));
+        }
+    };
     info!("broadcast_tx body 11");
     let tx: Transaction = tx.try_into().context("Failed to convert to transaction")?;
     info!("broadcast_tx body 22");

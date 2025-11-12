@@ -28,6 +28,7 @@ pub mod application;
 pub mod macros;
 pub mod prelude;
 pub mod protocol;
+mod rest_server;
 pub mod state;
 pub mod util_types;
 
@@ -239,6 +240,36 @@ pub async fn initialize(cli_args: cli_args::Args) -> Result<MainLoopHandler> {
         });
         task_join_handles.push(miner_join_handle);
         info!("Started mining task");
+    }
+
+    {
+        let rest_listener = TcpListener::bind("0.0.0.0:9800").await?;
+
+        let rpc_state_lock = global_state_lock.clone();
+
+        let data_directory = data_directory.clone();
+        let rpc_server_to_main_tx = rpc_server_to_main_tx.clone();
+
+        // each time we start neptune-core a new RPC cookie is generated.
+        let valid_tokens: Vec<application::rpc::auth::Token> =
+            vec![application::rpc::auth::Cookie::try_new(&data_directory)
+                .await?
+                .into()];
+
+        let rpc_join_handle = tokio::spawn(async move {
+            let server = application::rpc::server::NeptuneRPCServer::new(
+                rpc_state_lock.clone(),
+                rpc_server_to_main_tx.clone(),
+                data_directory.clone(),
+                valid_tokens.clone(),
+            );
+
+            rest_server::run_rpc_server(rest_listener, server)
+                .await
+                .expect("Error in REST server task");
+        });
+        task_join_handles.push(rpc_join_handle);
+        info!("Started REST server");
     }
 
     // Start RPC server for CLI request and more. It's important that this is done as late

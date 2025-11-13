@@ -7,13 +7,16 @@ use crate::api::export::Transaction;
 use crate::api::export::TransactionKernelId;
 use crate::api::export::TransactionProof;
 use crate::api::export::TransactionProofType;
+use tasm_lib::prelude::Tip5;
 
-#[derive(Clone, Debug, Copy, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MempoolTransactionInfo {
     pub id: TransactionKernelId,
     pub proof_type: TransactionProofType,
     pub num_inputs: usize,
+    pub inputs: Vec<String>,
     pub num_outputs: usize,
+    pub outputs: Vec<String>,
     pub positive_balance_effect: NativeCurrencyAmount,
     pub negative_balance_effect: NativeCurrencyAmount,
     pub fee: NativeCurrencyAmount,
@@ -30,7 +33,19 @@ impl From<&Transaction> for MempoolTransactionInfo {
                 TransactionProof::ProofCollection(_) => TransactionProofType::ProofCollection,
             },
             num_inputs: mptx.kernel.inputs.len(),
+            inputs: mptx
+                .kernel
+                .inputs
+                .iter()
+                .map(|input| Tip5::hash(&input.absolute_indices).to_hex())
+                .collect(),
             num_outputs: mptx.kernel.outputs.len(),
+            outputs: mptx
+                .kernel
+                .outputs
+                .iter()
+                .map(|output|  output.canonical_commitment.to_hex())
+                .collect(),
             positive_balance_effect: NativeCurrencyAmount::zero(),
             negative_balance_effect: NativeCurrencyAmount::zero(),
             fee: mptx.kernel.fee,

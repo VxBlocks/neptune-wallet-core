@@ -1,16 +1,20 @@
 //! BlockInfo is a concise summary of a block intended for human
 //! consumption/reporting in block explorers, cli, dashboard, etc.
 
+use std::str::FromStr;
+
 use itertools::Itertools;
 use rand::distr::Distribution;
 use rand::distr::StandardUniform;
 use rand::Rng;
 use serde::Deserialize;
 use serde::Serialize;
+use tasm_lib::prelude::Tip5;
 use tasm_lib::twenty_first::tip5::digest::Digest;
 
 use super::difficulty_control::Difficulty;
 use super::difficulty_control::ProofOfWork;
+use crate::api::export::TransactionKernelId;
 use crate::protocol::consensus::block::block_height::BlockHeight;
 use crate::protocol::consensus::block::Block;
 use crate::protocol::consensus::type_scripts::native_currency_amount::NativeCurrencyAmount;
@@ -30,7 +34,9 @@ pub struct BlockInfo {
     pub cumulative_proof_of_work: ProofOfWork,
     pub difficulty: Difficulty,
     pub num_inputs: usize,
+    pub inputs: Vec<String>,
     pub num_outputs: usize,
+    pub outputs: Vec<String>,
     pub num_announcements: usize,
     pub coinbase_amount: NativeCurrencyAmount,
     pub fee: NativeCurrencyAmount,
@@ -38,6 +44,8 @@ pub struct BlockInfo {
     pub is_tip: bool,
     pub is_canonical: bool,
     pub sibling_blocks: Vec<Digest>, // blocks at same height
+    pub txid: TransactionKernelId,
+    pub guesser_digest: Digest,
 }
 
 // note: this is used by neptune-cli block-info command.
@@ -55,7 +63,9 @@ impl std::fmt::Display for BlockInfo {
             )
             + &format!("difficulty: {}\n", self.difficulty)
             + &format!("num_inputs: {}\n", self.num_inputs)
+            + &format!("inputs: {:#?}\n", self.inputs)
             + &format!("num_outputs: {}\n", self.num_outputs)
+            + &format!("outputs: {:#?}\n", self.outputs)
             + &format!("num_announcements: {}\n", self.num_announcements)
             + &format!("coinbase_amount: {}\n", self.coinbase_amount)
             + &format!("fee: {}\n", self.fee)
@@ -65,7 +75,9 @@ impl std::fmt::Display for BlockInfo {
             + &format!(
                 "sibling_blocks: {}\n",
                 self.sibling_blocks.iter().map(|d| d.to_hex()).join(",")
-            );
+            )
+            + &format!("txid: {:?}\n", self.txid,)
+            + &format!("guesser_digest: {}\n", self.guesser_digest.to_hex());
 
         write!(f, "{}", buf)
     }
@@ -91,7 +103,19 @@ impl BlockInfo {
             difficulty: header.difficulty,
             cumulative_proof_of_work: header.cumulative_proof_of_work,
             num_inputs: body.transaction_kernel.inputs.len(),
+            inputs: body
+                .transaction_kernel
+                .inputs
+                .iter()
+                .map(|input| Tip5::hash(&input.absolute_indices).to_hex())
+                .collect(),
             num_outputs: body.transaction_kernel.outputs.len(),
+            outputs: body
+                .transaction_kernel
+                .outputs
+                .iter()
+                .map(|output| output.canonical_commitment.to_hex())
+                .collect(),
             num_announcements: body.transaction_kernel.announcements.len(),
             fee: body.transaction_kernel.fee,
             coinbase_amount: block.coinbase_amount(),
@@ -99,6 +123,8 @@ impl BlockInfo {
             is_tip: digest == tip_digest,
             is_canonical,
             sibling_blocks,
+            txid: block.kernel.body.transaction_kernel.txid(),
+            guesser_digest: block.header().guesser_receiver_data.receiver_digest,
         }
     }
 
@@ -122,8 +148,16 @@ impl Distribution<BlockInfo> for StandardUniform {
             timestamp: rng.random(),
             cumulative_proof_of_work: rng.random(),
             difficulty: rng.random(),
-            num_inputs: rng.random_range(0..30),
-            num_outputs: rng.random_range(0..10),
+            num_inputs: 5,
+            inputs: (0..5)
+                .map(|_| rng.random())
+                .map(|d: Digest| d.to_hex())
+                .collect_vec(),
+            num_outputs: 5,
+            outputs: (0..5)
+                .map(|_| rng.random())
+                .map(|d: Digest| d.to_hex())
+                .collect_vec(),
             num_announcements: rng.random_range(0..10),
             coinbase_amount: NativeCurrencyAmount::from_nau(
                 (1i128 << rng.random_range(0..=8)) >> 1,
@@ -137,6 +171,8 @@ impl Distribution<BlockInfo> for StandardUniform {
             sibling_blocks: (0..rng.random_range(0..2))
                 .map(|_| rng.random())
                 .collect_vec(),
+            txid: TransactionKernelId::from_str("0").unwrap(),
+            guesser_digest: rng.random(),
         }
     }
 }

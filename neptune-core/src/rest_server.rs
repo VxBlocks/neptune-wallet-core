@@ -219,6 +219,10 @@ pub(crate) async fn run_rpc_server(
                 axum::routing::get(get_block),
             )
             .route(
+                "/rpc/block/height/{*block_selector}",
+                axum::routing::get(get_block),
+            )
+            .route(
                 "/rpc/batch_block/{height}/{batch_size}",
                 axum::routing::get(get_batch_block),
             )

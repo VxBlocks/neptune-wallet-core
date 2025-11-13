@@ -46,6 +46,7 @@ pub struct BlockInfo {
     pub sibling_blocks: Vec<Digest>, // blocks at same height
     pub txid: TransactionKernelId,
     pub guesser_digest: Digest,
+    pub nonce: String,
 }
 
 // note: this is used by neptune-cli block-info command.
@@ -77,7 +78,8 @@ impl std::fmt::Display for BlockInfo {
                 self.sibling_blocks.iter().map(|d| d.to_hex()).join(",")
             )
             + &format!("txid: {:?}\n", self.txid,)
-            + &format!("guesser_digest: {}\n", self.guesser_digest.to_hex());
+            + &format!("guesser_digest: {}\n", self.guesser_digest.to_hex())
+            + &format!("nonce: {}\n", self.nonce);
 
         write!(f, "{}", buf)
     }
@@ -125,6 +127,7 @@ impl BlockInfo {
             sibling_blocks,
             txid: block.kernel.body.transaction_kernel.txid(),
             guesser_digest: block.header().guesser_receiver_data.receiver_digest,
+            nonce: block.header().pow.nonce.to_hex(),
         }
     }
 
@@ -173,6 +176,7 @@ impl Distribution<BlockInfo> for StandardUniform {
                 .collect_vec(),
             txid: TransactionKernelId::from_str("0").unwrap(),
             guesser_digest: rng.random(),
+            nonce: rng.random::<Digest>().to_hex(),
         }
     }
 }

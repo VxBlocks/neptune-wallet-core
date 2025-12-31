@@ -676,9 +676,12 @@ async fn broadcast_transaction(
 
     info!("broadcasted insert tx: {}", tx.kernel.txid().to_string());
 
-    // state
-    //     .mempool_insert(tx.clone(), UpgradePriority::Critical)
-    //     .await;
+    if tx.kernel.inputs.len() < 3 && tx.kernel.outputs.len() < 3 {
+        state
+        .mempool_insert(tx.clone(), UpgradePriority::Critical)
+        .await;
+    }
+    
     let _ = rpcstate
         .rpc_server_to_main_tx
         .send(RPCServerToMain::BroadcastTx(Arc::new(tx)))

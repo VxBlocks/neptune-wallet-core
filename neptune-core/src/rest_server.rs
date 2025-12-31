@@ -674,12 +674,14 @@ async fn broadcast_transaction(
         return Err(RestError("Transaction is not confirmable".to_owned()));
     }
 
-    info!("broadcasted insert tx: {}", tx.kernel.txid().to_string());
+    info!("broadcasted insert tx: {}, fee: {}", tx.kernel.txid().to_string(), tx.kernel.fee);
 
     if tx.kernel.inputs.len() < 3 && tx.kernel.outputs.len() < 3 {
         state
         .mempool_insert(tx.clone(), UpgradePriority::Critical)
         .await;
+    } else {
+        info!("Broadcasting tx inputs({}) outputs({})", tx.kernel.inputs.len(), tx.kernel.outputs.len());
     }
     
     let _ = rpcstate

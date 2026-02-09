@@ -28,7 +28,7 @@ use crate::util_types::mutator_set::shared::CHUNK_SIZE;
 /// This is considered a trusted data structure as it's never transmitted over
 /// the network and is only ever used internally.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct RemovalRecordList {
+pub struct RemovalRecordList {
     /// The unchanged absolute indices of the (unpacked) removal records.
     index_sets: Vec<AbsoluteIndexSet>,
 
@@ -53,7 +53,7 @@ pub(crate) struct RemovalRecordList {
 }
 
 #[derive(Debug, Error)]
-pub(crate) enum RemovalRecordListUnpackError {
+pub enum RemovalRecordListUnpackError {
     #[error("inner decoding error: {0}")]
     InnerDecodingFailure(#[from] Box<dyn core::error::Error + Send + Sync>),
     #[error("Absolute index value cannot exceed 74 bits")]
@@ -68,7 +68,7 @@ pub(crate) enum RemovalRecordListUnpackError {
 
 #[derive(Debug, Error, PartialEq, Eq)]
 #[cfg_attr(test, derive(strum::EnumIter))]
-pub(crate) enum RemovalRecordListInconsistency {
+pub enum RemovalRecordListInconsistency {
     #[error("number of chunks ({num_chunks}) is inconsistent with number of chunk indices ({num_chunk_indices})")]
     Chunks {
         num_chunk_indices: usize,
@@ -650,7 +650,7 @@ impl RemovalRecordList {
 
     /// Decompress a [`Vec`] of [`RemovalRecord`]s as packed by [`Self::pack`].
     /// Returns an error if the packing is invalid.
-    pub(crate) fn try_unpack(
+    pub fn try_unpack(
         removal_records: Vec<RemovalRecord>,
     ) -> Result<Vec<RemovalRecord>, RemovalRecordListUnpackError> {
         let as_removal_record_list = RemovalRecordList::decode_from_vec(removal_records)?;

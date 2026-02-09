@@ -31,7 +31,7 @@ pub struct BlockKernel {
 }
 
 impl BlockKernel {
-    pub(crate) fn new(header: BlockHeader, body: BlockBody, appendix: BlockAppendix) -> Self {
+    pub fn new(header: BlockHeader, body: BlockBody, appendix: BlockAppendix) -> Self {
         Self {
             header,
             body,
@@ -70,7 +70,7 @@ impl BlockKernel {
     /// the block's guesser
     ///
     /// The genesis block does not have this addition record.
-    pub(crate) fn guesser_fee_addition_records(
+    pub fn guesser_fee_addition_records(
         &self,
         block_hash: Digest,
     ) -> Result<Vec<AdditionRecord>, BlockValidationError> {

@@ -28,7 +28,7 @@ pub struct WalletEntropy {
 }
 
 impl WalletEntropy {
-    pub(crate) fn new(secret_seed: SecretKeyMaterial) -> Self {
+    pub fn new(secret_seed: SecretKeyMaterial) -> Self {
         Self { secret_seed }
     }
 

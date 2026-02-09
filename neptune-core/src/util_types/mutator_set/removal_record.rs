@@ -1,7 +1,7 @@
-pub(crate) mod absolute_index_set;
+pub mod absolute_index_set;
 pub(crate) mod chunk;
 pub(crate) mod chunk_dictionary;
-pub(crate) mod removal_record_list;
+pub mod removal_record_list;
 
 use std::collections::HashMap;
 use std::collections::HashSet;
